@@ -1,5 +1,9 @@
 #![feature(impl_trait_in_assoc_type)]
 
+pub mod aof;
+
+use aof::Command;
+
 use volo_gen::my_redis::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -31,8 +35,21 @@ impl volo_gen::my_redis::ItemService for S {
         match req.request_type {
             ItemType::Set => {
                 self.s_box.write().unwrap().borrow_mut().db.insert(
-                    req.key.unwrap().into_string(),
-                    req.value.unwrap().into_string());
+                    req.clone().key.unwrap().into_string(),
+                    req.value.clone().unwrap().into_string());
+                
+                // write log file
+                let command = Command::Set {
+                    key: req.key.unwrap().into_string(),
+                    value: req.value.unwrap().into_string(),
+                };
+                match aof::write_command_to_aof(&command).await {
+                    Ok(_) => {},
+                    Err(e) => {
+                        eprintln!("Error: {:?}", e);
+                    }
+                }
+
                 Ok(
                     ItemResponse {
                         response_type: ResponseType::Success,
@@ -61,7 +78,18 @@ impl volo_gen::my_redis::ItemService for S {
                 }
             }
             ItemType::Del => {
-               match self.s_box.write().unwrap().borrow_mut().db.remove(&req.key.unwrap().into_string()) {
+                let command = Command::Del {
+                    key: req.key.clone().unwrap().into_string(),
+                };
+
+                match aof::write_command_to_aof(&command).await {
+                    Ok(_) => {},
+                    Err(e) => {
+                        eprintln!("Error: {:?}", e);
+                    }
+                }
+
+                match self.s_box.write().unwrap().borrow_mut().db.remove(&req.key.unwrap().into_string()) {
                     Some(_) => {
                         Ok(
                             ItemResponse {
