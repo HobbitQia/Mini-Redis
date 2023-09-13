@@ -1,0 +1,8 @@
+entries:
+  default:
+    protocol: thrift
+    filename: volo_gen.rs
+    idls:
+    - source: local
+      path: ../idl/my_redis.thrift
+      keep_unknown_fields: false
