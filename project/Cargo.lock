@@ -852,9 +852,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "futures",
  "lazy_static",
  "mini-redis",
  "pilota",
+ "serde",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.17",

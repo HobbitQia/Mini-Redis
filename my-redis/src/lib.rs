@@ -7,6 +7,8 @@ use aof::Command;
 use volo_gen::my_redis::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use futures::executor::block_on;
+use std::net::SocketAddr;
 use volo::FastStr;
 use std::sync::RwLock;
 use tokio::sync::broadcast::Sender;
@@ -16,7 +18,9 @@ use anyhow::anyhow;
 type ChannelType = HashMap<String, Sender<String>>;
 
 pub struct S {
-    pub s_box: RwLock<RefCell<WrappedS>>
+    pub s_box: RwLock<RefCell<WrappedS>>,
+    pub master_type: bool,
+    pub slave_vec: Vec<String>,
 }
 pub struct WrappedS {
     pub db: HashMap<String, String>,
@@ -26,22 +30,56 @@ pub struct WrappedS {
 unsafe impl Send for S {}
 unsafe impl Sync for S {}
 
+
+impl S {
+    pub fn dispatch(&self, req: Item) {
+        println!("len::{}", self.slave_vec.len());
+        for s in &self.slave_vec {
+            let addr: SocketAddr = s.parse().unwrap();
+            println!("{}",addr);
+            let client = volo_gen::my_redis::ItemServiceClientBuilder::new("my-redis")
+                .layer_outer(LogLayer)
+                .address(addr)
+                .build();
+            let res = block_on(client.redis_command(Item {
+                key: req.key.clone(),
+                value: req.value.clone(),
+                expire_time: req.expire_time,
+                request_type: req.request_type,
+            }, true));
+            // match res {
+            //     Ok(_) => { println!("okkkkkkkkkkkkkkkkkkk!"); }
+            //     Err(_) => {println!("shabiiiiiiiiiiiiiiiii!!!");}
+            // }
+        }
+    }
+}
+
+
 #[volo::async_trait]
 impl volo_gen::my_redis::ItemService for S {
 	async fn redis_command(
 		&self, 
-		req: Item
+		req: Item,
+        is_from_master: bool
 	) -> ::core::result::Result<ItemResponse, ::volo_thrift::AnyhowError> {
         match req.request_type {
             ItemType::Set => {
+                if self.master_type == false && is_from_master == false {
+                    return Ok(ItemResponse {
+                        response_type: ResponseType::Error,
+                        value: Some("You can not set values into slave server.".into())
+                    });
+                }
+
                 self.s_box.write().unwrap().borrow_mut().db.insert(
                     req.clone().key.unwrap().into_string(),
                     req.value.clone().unwrap().into_string());
                 
                 // write log file
                 let command = Command::Set {
-                    key: req.key.unwrap().into_string(),
-                    value: req.value.unwrap().into_string(),
+                    key: req.key.clone().unwrap().into_string(),
+                    value: req.value.clone().unwrap().into_string(),
                 };
                 match aof::write_command_to_aof(&command).await {
                     Ok(_) => {},
@@ -49,7 +87,12 @@ impl volo_gen::my_redis::ItemService for S {
                         eprintln!("Error: {:?}", e);
                     }
                 }
-
+                // println!("OUTTTTTTTTTTTT");
+                if self.master_type == true {
+                    // println!("TYPEEEEEEEEEEEEE");
+                    self.dispatch(req);
+                    // block_on(self.dispatch(req));
+                }
                 Ok(
                     ItemResponse {
                         response_type: ResponseType::Success,
@@ -78,6 +121,13 @@ impl volo_gen::my_redis::ItemService for S {
                 }
             }
             ItemType::Del => {
+                if self.master_type == false && is_from_master == false {
+                    return Ok(ItemResponse {
+                        response_type: ResponseType::Error,
+                        value: Some("You can not delete values from slave server.".into())
+                    });
+                }
+
                 let command = Command::Del {
                     key: req.key.clone().unwrap().into_string(),
                 };
@@ -88,8 +138,12 @@ impl volo_gen::my_redis::ItemService for S {
                         eprintln!("Error: {:?}", e);
                     }
                 }
-
-                match self.s_box.write().unwrap().borrow_mut().db.remove(&req.key.unwrap().into_string()) {
+                if self.master_type == true {
+                    // println!("TYPEEEEEEEEEEEEE");
+                    self.dispatch(req.clone());
+                    // block_on(self.dispatch(req));
+                }
+                match self.s_box.write().unwrap().borrow_mut().db.remove(&req.key.clone().unwrap().into_string()) {
                     Some(_) => {
                         Ok(
                             ItemResponse {
@@ -107,6 +161,7 @@ impl volo_gen::my_redis::ItemService for S {
                         )
                     }
                 }
+                
             }
             ItemType::Ping => {
                 Ok(

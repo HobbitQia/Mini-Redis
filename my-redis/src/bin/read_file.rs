@@ -1,12 +1,12 @@
 use std::io::Read;
 
 pub struct Config {
-    name: String,
-    _type: String,
-    host: String,
-    port: String,
-    master_host: String,
-    master_port: String, 
+    pub name: String,
+    pub _type: String,
+    pub host: String,
+    pub port: String,
+    pub master_host: String,
+    pub master_port: String, 
 }
 
 impl Config {
@@ -210,4 +210,6 @@ pub fn read_file(path: String) -> Vec<Config> {
     } 
     ret 
 }
+
+fn main() {}
 

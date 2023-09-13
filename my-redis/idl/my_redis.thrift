@@ -27,5 +27,5 @@ struct ItemResponse {
 }
 
 service ItemService  {
-    ItemResponse RedisCommand (1: Item req),
+    ItemResponse RedisCommand (1: Item req, 2: bool is_from_master),
 }
