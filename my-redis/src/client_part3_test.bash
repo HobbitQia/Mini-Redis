@@ -2,6 +2,7 @@
 workdir=$(cd $(dirname $0); pwd)
 
 echo $workdir
+cargo build --bin client
 
 cd $workdir/../target/debug && ./client set THU TsinghuaUniversity
 cd $workdir/../target/debug && ./client get THU
@@ -12,3 +13,5 @@ cd $workdir/../target/debug && ./client get ZJU
 cd $workdir/../target/debug && ./client del ZJU
 cd $workdir/../target/debug && ./client del ZJU
 cd $workdir/../target/debug && ./client get ZJU
+cd $workdir/../target/debug && ./client set key value
+cd $workdir/../target/debug && ./client set rust cargo

@@ -22,7 +22,7 @@ use std::collections::HashMap;
 async fn main() {
 
     let (config, pattern) = read_file::read_file(
-        String::from("./src/config.txt")
+        String::from("/home/ljy/code/Mini-Redis/my-redis/src/config.txt")
     );
 
     let mut PROXY_BOX:Vec<(volo_gen::my_redis::ItemServiceClient, volo_gen::my_redis::ItemServiceClient)>

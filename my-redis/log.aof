@@ -66,3 +66,8 @@ SET ljy pppp
 SET ljy pppp
 DEL ljy
 DEL ljy
+SET 1 2
+SET key value
+SET 1 2
+SET 2 3
+DEL 1
