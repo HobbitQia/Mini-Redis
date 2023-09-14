@@ -3,19 +3,19 @@ pattern: cluster
 name: proxy
 type: proxy
 host: 127.0.0.1
-port: 8000
+port: 6378
 
 name: redis-master-1
 type: master
 host: 127.0.0.1
-port: 6378
+port: 6382
 
 name: redis-slave-1
 type: slave
 host: 127.0.0.1
 port: 6379
 master_host: 127.0.0.1
-master_port: 6378
+master_port: 6382
 
 name: redis-master-2
 type: master

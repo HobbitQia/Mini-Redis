@@ -40,3 +40,29 @@ DEL UCLA
 DEL UCLA
 DEL UCLA
 DEL UCLA
+SET foo 1
+SET foo 1
+SET foo guai
+SET foo guai
+SET foo guai
+SET foo 1c
+SET foo 1c
+SET foo 1c
+SET foo 1c
+SET foo 1c
+SET foo 1
+SET foo 1
+SET foo 1
+SET foo 1
+SET foo 2
+SET foo 2
+SET foo 3
+SET foo 3
+DEL foo
+DEL foo
+SET ZJUUUU shk
+SET ZJUUUU shk
+SET ljy pppp
+SET ljy pppp
+DEL ljy
+DEL ljy
