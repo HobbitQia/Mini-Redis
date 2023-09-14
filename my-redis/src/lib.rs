@@ -133,6 +133,11 @@ impl volo_gen::my_redis::ItemService for S {
                     });
                 }
 
+		if req.key.is_none() && req.value.is_none() {
+                    println!("Server will be shut down!");
+                    std::process::exit(0);
+                }
+
                 self.s_box.write().unwrap().borrow_mut().db.insert(
                     req.clone().key.unwrap().into_string(),
                     req.value.clone().unwrap().into_string());
