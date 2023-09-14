@@ -5,8 +5,8 @@ use volo::FastStr;
 use std::sync::Arc;
 use volo_gen::my_redis::{Item, ItemType};
 use volo_gen::my_redis::ResponseType;
+use my_redis::read_file;
 
-pub mod read_file;
 // lazy_static! {
 //     static ref CLIENT: volo_gen::my_redis::ItemServiceClient = {
 //         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
@@ -24,16 +24,31 @@ async fn main() {
     // let req = volo_gen::volo::example::GetItemRequest { id: 0 };
     let opcode;
     let mut args: Vec<String> = std::env::args().collect();
-    let config = read_file::read_file(
+    let (config, pattern) = read_file::read_file(
         String::from("./src/config.txt")
     );
 
+
     let string_name = args[1].to_string();
     let mut str: String = String::new();
-    for i in config {
-        if i.name == string_name {
-            str = format!("{}:{}", i.host, i.port);
-            break;
+    let index;
+    if pattern == "cluster" {
+        index = 2;
+        for i in config {
+            if i._type == "proxy" {
+                str = format!("{}:{}", i.host, i.port);
+                break;
+            }
+        }
+        
+    }
+    else {
+        index = 3;
+        for i in config {
+            if i.name == string_name {
+                str = format!("{}:{}", i.host, i.port);
+                break;
+            }
         }
     }
     let addr: SocketAddr = str.parse().unwrap();
@@ -42,12 +57,12 @@ async fn main() {
         .address(addr)
         .build();
 
-
-    let request = match args[2].to_uppercase().as_str() {
+    
+    let request = match args[index-1].to_uppercase().as_str() {
         "GET" => {
             opcode = 1;
             Item {
-                key: Some(FastStr::from(Arc::new(args.remove(3)))),
+                key: Some(FastStr::from(Arc::new(args.remove(index)))),
                 value: None,
                 request_type: ItemType::Get,
                 expire_time: None
@@ -56,8 +71,8 @@ async fn main() {
         "SET" => {
             opcode = 2;
             Item {
-                key: Some(FastStr::from(Arc::new(args.remove(3)))),
-                value: Some(FastStr::from(Arc::new(args.remove(3)))),
+                key: Some(FastStr::from(Arc::new(args.remove(index)))),
+                value: Some(FastStr::from(Arc::new(args.remove(index)))),
                 request_type: ItemType::Set,
                 expire_time: None
             }
@@ -65,7 +80,7 @@ async fn main() {
         "DEL" => {
             opcode = 3;
             Item {
-                key: Some(FastStr::from(Arc::new(args.remove(3)))),
+                key: Some(FastStr::from(Arc::new(args.remove(index)))),
                 value: None,
                 request_type: ItemType::Del,
                 expire_time: None
@@ -75,7 +90,7 @@ async fn main() {
             opcode = 4;
             let value = { 
                     if args.len() > 2 {
-                        Some(FastStr::from(Arc::new(args.remove(3))))
+                        Some(FastStr::from(Arc::new(args.remove(index))))
                     }
                     else { Some("Pong".into()) } 
             };
@@ -90,7 +105,7 @@ async fn main() {
             opcode = 5;
             println!("Waiting for messages to be issued...");
             Item {
-                key: Some(FastStr::from(Arc::new(args.remove(3)))),
+                key: Some(FastStr::from(Arc::new(args.remove(index)))),
                 value: None,
                 request_type: ItemType::Subscribe,
                 expire_time: None
@@ -99,8 +114,8 @@ async fn main() {
         "PUBLISH" => {
             opcode = 6;
             Item {
-                key: Some(FastStr::from(Arc::new(args.remove(3)))),
-                value: Some(FastStr::from(Arc::new(args.remove(3)))),
+                key: Some(FastStr::from(Arc::new(args.remove(index)))),
+                value: Some(FastStr::from(Arc::new(args.remove(index)))),
                 request_type: ItemType::Publish,
                 expire_time: None
             }

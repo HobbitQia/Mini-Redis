@@ -1,13 +1,14 @@
 #![feature(impl_trait_in_assoc_type)]
 
+use my_redis::PROXY_BOX;
 use my_redis::aof::Command;
 use my_redis::aof::recover_from_aof;
+use my_redis::read_file;
 
 use std::net::SocketAddr;
 use my_redis::{S, LogLayer};
 
 use std::collections::HashMap;
-pub mod read_file;
 
 #[volo::main]
 async fn main() {
@@ -34,9 +35,21 @@ async fn main() {
         }
     }
 
-    let config = read_file::read_file(
+    let (config, pattern) = read_file::read_file(
         String::from("./src/config.txt")
     );
+
+    unsafe {
+        if pattern == "cluster" && PROXY_BOX.is_empty() {
+            for i in &config {
+                for j in &config {
+                    if i._type == "master" && j._type == "slave" && j.master_host == i.host && j.master_port == i.port {
+                        PROXY_BOX.push((format!("{}:{}", i.host, i.port), format!("{}:{}", j.host, j.port)));
+                    }
+                }
+            }
+        }
+    }
 
     let args: Vec<String> = std::env::args().collect();
     let string_name = args[1].to_string();
@@ -64,7 +77,8 @@ async fn main() {
                             }
                         )),
                         master_type: i._type == "master",
-                        slave_vec
+                        slave_vec,
+                        proxy_type: i._type == "proxy",
                     }
                 )
                 .layer_front(LogLayer)

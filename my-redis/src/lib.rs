@@ -13,6 +13,9 @@ use volo::FastStr;
 use std::sync::RwLock;
 use tokio::sync::broadcast::Sender;
 // use anyhow::Error;
+use crc16::*;
+pub mod read_file;
+
 use anyhow::anyhow;
 
 type ChannelType = HashMap<String, Sender<String>>;
@@ -21,6 +24,7 @@ pub struct S {
     pub s_box: RwLock<RefCell<WrappedS>>,
     pub master_type: bool,
     pub slave_vec: Vec<String>,
+    pub proxy_type: bool,
 }
 pub struct WrappedS {
     pub db: HashMap<String, String>,
@@ -30,6 +34,8 @@ pub struct WrappedS {
 unsafe impl Send for S {}
 unsafe impl Sync for S {}
 
+pub static mut PROXY_BOX: Vec<(String, String)> = Vec::new();
+pub const MOD: u16 = 16383;
 
 impl S {
     pub fn dispatch(&self, req: Item) {
@@ -53,6 +59,64 @@ impl S {
             // }
         }
     }
+
+    pub fn proxy_dispatch(&self, req: Item) -> Result<ItemResponse, ::volo_thrift::AnyhowError> {
+        let hash = State::<ARC>::calculate(req.key.clone().unwrap().as_bytes()) % MOD;
+        let size = unsafe { PROXY_BOX.len() } as u16;
+        println!("{}",size);
+        let index = hash / (MOD / size); 
+        match req.request_type {
+            ItemType::Set | ItemType::Del => {
+
+                let (str, _) = unsafe { PROXY_BOX.get(index as usize) }.clone().unwrap();
+                let addr: SocketAddr = str.parse().unwrap();
+                let client = volo_gen::my_redis::ItemServiceClientBuilder::new("my-redis")
+                .layer_outer(LogLayer)
+                .address(addr)
+                .build();
+                let res = block_on(client.redis_command(Item {
+                    key: req.key.clone(),
+                    value: req.value.clone(),
+                    expire_time: req.expire_time,
+                    request_type: req.request_type,
+                }, true));
+                match res {
+                    Ok(v) => {
+                        Ok(v)
+                    }
+                    Err(e) => {
+                        Err(e.into())
+                    }
+                }
+            }
+            _ => {
+                println!("indexx:{}", index);
+                let (_, str) = unsafe { PROXY_BOX.get(index as usize) }.clone().unwrap();
+                let addr: SocketAddr = str.parse().unwrap();
+                println!("addr:{}", addr);
+                let client = volo_gen::my_redis::ItemServiceClientBuilder::new("my-redis")
+                .layer_outer(LogLayer)
+                .address(addr)
+                .build();
+                println!("Connecting!");
+                let res = block_on(client.redis_command(Item {
+                    key: req.key.clone(),
+                    value: req.value.clone(),
+                    expire_time: req.expire_time,
+                    request_type: req.request_type,
+                }, false));
+                println!("Connecting222!");
+                match res {
+                    Ok(v) => {
+                        Ok(v)
+                    }
+                    Err(e) => {
+                        Err(e.into())
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -63,6 +127,10 @@ impl volo_gen::my_redis::ItemService for S {
 		req: Item,
         is_from_master: bool
 	) -> ::core::result::Result<ItemResponse, ::volo_thrift::AnyhowError> {
+        println!("Entetrrrrrrrrrrrrrrrr");
+        if self.proxy_type == true {
+            return self.proxy_dispatch(req);
+        }
         match req.request_type {
             ItemType::Set => {
                 if self.master_type == false && is_from_master == false {
@@ -101,6 +169,7 @@ impl volo_gen::my_redis::ItemService for S {
                 )
             }
             ItemType::Get => {
+                println!("GETTTT!");
                 match self.s_box.read().unwrap().borrow().db.get(&req.key.unwrap().into_string()) {
                     Some(v) => {
                         Ok(
