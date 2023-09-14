@@ -3,8 +3,7 @@ OK!
 OK!
 OK!
 Value: "value"
-OK!
-Value: "2"
+Some error happens: "Key not found!"
 OK!
 Value: "3"
 OK!

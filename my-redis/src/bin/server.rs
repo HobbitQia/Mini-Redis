@@ -9,10 +9,18 @@ use my_redis::{S, LogLayer};
 use std::collections::HashMap;
 pub mod read_file;
 
+use std::path::PathBuf;
+lazy_static::lazy_static! {
+    // #[derive(Debug)]
+    pub static ref CWD: PathBuf = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
+}
+
 #[volo::main]
 async fn main() {
-
-    let commands =  match recover_from_aof().await {
+    let mut path = (*CWD).clone();
+    path.push("../../src/log/log.aof");
+    println!("{:?}",path);
+    let commands =  match recover_from_aof(path.to_str().unwrap().to_string()).await {
         Ok(commands) => {
             commands
         }
@@ -34,8 +42,10 @@ async fn main() {
         }
     }
 
+    println!("{:?}", db);
+
     let config = read_file::read_file(
-        String::from("./src/config.txt")
+        String::from("/home/ljy/code/Mini-Redis/my-redis/src/config.txt")
     );
 
     let args: Vec<String> = std::env::args().collect();

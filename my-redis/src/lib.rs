@@ -1,4 +1,9 @@
 #![feature(impl_trait_in_assoc_type)]
+use std::path::PathBuf;
+lazy_static::lazy_static! {
+    // #[derive(Debug)]
+    pub static ref CWD: PathBuf = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
+}
 
 pub mod aof;
 
@@ -81,14 +86,18 @@ impl volo_gen::my_redis::ItemService for S {
                     key: req.key.clone().unwrap().into_string(),
                     value: req.value.clone().unwrap().into_string(),
                 };
-                match aof::write_command_to_aof(&command).await {
-                    Ok(_) => {},
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
-                    }
-                }
+
+                let mut path = (*CWD).clone();
+                path.push("../../src/log/log.aof");
+                
                 // println!("OUTTTTTTTTTTTT");
                 if self.master_type == true {
+                    match aof::write_command_to_aof(&command, path.to_str().unwrap().to_string()).await {
+                        Ok(_) => {},
+                        Err(e) => {
+                            eprintln!("Error: {:?}", e);
+                        }
+                    }
                     // println!("TYPEEEEEEEEEEEEE");
                     self.dispatch(req);
                     // block_on(self.dispatch(req));
@@ -132,13 +141,16 @@ impl volo_gen::my_redis::ItemService for S {
                     key: req.key.clone().unwrap().into_string(),
                 };
 
-                match aof::write_command_to_aof(&command).await {
-                    Ok(_) => {},
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
-                    }
-                }
+                let mut path = (*CWD).clone();
+                path.push("../../src/log/log.aof");
+
                 if self.master_type == true {
+                    match aof::write_command_to_aof(&command, path.to_str().unwrap().to_string()).await {
+                        Ok(_) => {},
+                        Err(e) => {
+                            eprintln!("Error: {:?}", e);
+                        }
+                    }
                     // println!("TYPEEEEEEEEEEEEE");
                     self.dispatch(req.clone());
                     // block_on(self.dispatch(req));

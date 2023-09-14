@@ -211,5 +211,10 @@ pub fn read_file(path: String) -> Vec<Config> {
     ret 
 }
 
-fn main() {}
+fn main() {
+    let ret = read_file(String::from("/home/ljy/code/Mini-Redis/my-redis/src/config.txt"));
+    for i in ret {
+        println!("cargo run --bin server {}  > /dev/null 2>&1 &", i.name);
+    }
+}
 

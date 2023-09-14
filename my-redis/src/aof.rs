@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use tokio::fs::OpenOptions;
 use tokio::fs::File;
@@ -44,11 +46,11 @@ impl Command {
     }
 }
 
-pub async fn write_command_to_aof(command: &Command) -> Result<(), tokio::io::Error> {
+pub async fn write_command_to_aof(command: &Command, path: String) -> Result<(), tokio::io::Error> {
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)
-        .open("log.aof")
+        .open(path)
         .await?;
 
     let cmd_string = command.to_string();
@@ -58,8 +60,9 @@ pub async fn write_command_to_aof(command: &Command) -> Result<(), tokio::io::Er
     Ok(())
 }
 
-pub async fn recover_from_aof() -> Result<Vec<Command>, std::io::Error> {
-    let file = match File::open("log.aof").await {
+pub async fn recover_from_aof(path: String) -> Result<Vec<Command>, std::io::Error> {
+    // println!("In recover func: {:?}", path);
+    let file = match File::open(path).await {
         Ok(file) => file,
         Err(e) => {
             eprintln!("Error: {:?}", e);
@@ -78,4 +81,28 @@ pub async fn recover_from_aof() -> Result<Vec<Command>, std::io::Error> {
     }
 
     Ok(commands)
+}
+
+lazy_static::lazy_static! {
+    // #[derive(Debug)]
+    pub static ref CWD: PathBuf = std::env::current_dir().unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn main() {
+        println!("cwd: {:?}", *CWD);
+        // let command1 = Command::Set {
+        //     key: "ZJU".to_string(),
+        //     value: "ZHE".to_string(),
+        // };
+        // let command2 = Command::Set {
+        //     key: "key2".to_string(),
+        //     value: "value2".to_string(),
+        // };
+        // write_command_to_aof(&command1).await.unwrap();
+        // write_command_to_aof(&command2).await.unwrap();
+    }
 }

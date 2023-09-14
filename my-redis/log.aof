@@ -40,3 +40,34 @@ DEL UCLA
 DEL UCLA
 DEL UCLA
 DEL UCLA
+SET 1 2
+SET 2 3
+DEL 1
+SET key value
+SET 1 2
+SET 2 3
+DEL 1
+SET 1 2
+SET 1 2
+SET THU TsinghuaUniversity
+SET THU TsinghuaUniversity
+SET THU TsinghuaUniversity
+SET THU TsinghuaUniversity
+SET ZJU ZhejiangUniversity
+SET ZJU ZhejiangUniversity
+SET THU TsinghuaUniversity
+SET THU TsinghuaUniversity
+SET ZJU ZhejiangUniversity
+SET ZJU ZhejiangUniversity
+SET THU TsinghuaUniversity
+SET THU TsinghuaUniversity
+SET ZJU ZhejiangUniversity
+SET ZJU ZhejiangUniversity
+SET key1 value1
+SET key2 value2
+SET key1 value1
+SET key2 value2
+SET key1 value1
+SET key2 value2
+SET ZJU ZHEJIANG
+SET ZJU ZHEJIANG
