@@ -1,4 +1,4 @@
-pattern: cluster
+pattern: master_slave
 
 name: redis-master-1
 type: master

@@ -4,8 +4,9 @@
 use my_redis::aof::Command;
 use my_redis::aof::recover_from_aof;
 use my_redis::read_file;
+use volo_gen::my_redis::Item;
+use volo_gen::my_redis::ItemType;
 
-use std::fmt::format;
 use std::net::SocketAddr;
 use my_redis::{S, LogLayer};
 
@@ -30,7 +31,9 @@ async fn main() {
     let args: Vec<String> = std::env::args().collect();
     let string_name = args[1].to_string();
 
-    let index = string_name.as_bytes()[string_name.len()-1 as usize] as char;
+    let index = 
+    if pattern == "cluster" { string_name.as_bytes()[string_name.len()-1 as usize] as char }
+    else { '0' };
 
     // unsafe {
         if pattern == "cluster" && PROXY_BOX.is_empty() && string_name == "proxy" {
@@ -86,6 +89,9 @@ async fn main() {
         }
     }
 
+    let mut flag: bool = false;
+    let mut tmp_vec: Vec<String> = Vec::<String>::new();
+
     for i in &config {
         if string_name == i.name {
             let str = format!("{}:{}", i.host, i.port);
@@ -93,6 +99,7 @@ async fn main() {
             let addr = volo::net::Address::from(addr);
             let mut slave_vec = Vec::<String>::new();
             if i._type == "master" {
+                flag = true;
                 for j in &config {
                     // j.show();
                     if j.master_host == i.host && j.master_port == i.port {
@@ -100,14 +107,15 @@ async fn main() {
                     }
                 }
             }
+            tmp_vec = slave_vec.clone();
             volo_gen::my_redis::ItemServiceServer::new(
                     S {
-                        s_box: std::cell::RefCell::new(
+                        s_box: std::sync::RwLock::new(std::cell::RefCell::new(
                             my_redis::WrappedS {
                                 db: db.clone(),
                                 channel: HashMap::new(),
                             }
-                        ),
+                        )),
                         master_type: i._type == "master",
                         slave_vec,
                         proxy_type: i._type == "proxy",
@@ -120,11 +128,43 @@ async fn main() {
                 .await
                 .unwrap();
 
-            // break;
+            break;
         }
     }
-
     
+    if pattern == "cluster" && string_name == "proxy" {
+        println!("proxy exit");
+        for (i, j) in PROXY_BOX {
+            let _ = i.redis_command(Item {
+                key: None,
+                value: None,
+                expire_time: Some(-1),
+                request_type: ItemType::Set,
+            }, false).await;
+            // println!("kill 1 ok");
+            let _ = j.redis_command(Item {
+                key: None,
+                value: None,
+                expire_time: Some(-1),
+                request_type: ItemType::Set,
+            }, true).await;
+        }
+    }
+    else if flag {
+        for i in tmp_vec {
+            let addr: SocketAddr = i.parse().unwrap();
+            let client = volo_gen::my_redis::ItemServiceClientBuilder::new("my-redis-3213")
+            .layer_outer(LogLayer)
+            .address(addr)
+            .build();
+            let _ = client.redis_command(Item {
+                key: None,
+                value: None,
+                expire_time: Some(-1),
+                request_type: ItemType::Set,
+            }, true).await;
+        }
+    }
 
 }
 
