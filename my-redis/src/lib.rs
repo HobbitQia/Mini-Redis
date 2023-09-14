@@ -1,4 +1,9 @@
 #![feature(impl_trait_in_assoc_type)]
+use std::path::PathBuf;
+lazy_static::lazy_static! {
+    // #[derive(Debug)]
+    pub static ref CWD: PathBuf = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
+}
 
 pub mod aof;
 
@@ -24,6 +29,7 @@ pub struct S {
     pub slave_vec: Vec<String>,
     pub proxy_box: Vec<(volo_gen::my_redis::ItemServiceClient, volo_gen::my_redis::ItemServiceClient)>,
     pub proxy_type: bool,
+    pub server_index: char,
 }
 pub struct WrappedS {
     pub db: HashMap<String, String>,
@@ -132,13 +138,17 @@ impl volo_gen::my_redis::ItemService for S {
                     key: req.key.clone().unwrap().into_string(),
                     value: req.value.clone().unwrap().into_string(),
                 };
-                match aof::write_command_to_aof(&command).await {
-                    Ok(_) => {},
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
-                    }
-                }
+                
+                
                 if self.master_type == true {
+                    let mut path = (*CWD).clone();
+                    path.push(format!("../../src/log/log_{}.aof", self.server_index));
+                    match aof::write_command_to_aof(&command, path.to_str().unwrap().to_string()).await {
+                        Ok(_) => {},
+                        Err(e) => {
+                            eprintln!("Error: {:?}", e);
+                        }
+                    }
                     self.dispatch(req).await;
                 }
                 Ok(
@@ -181,13 +191,15 @@ impl volo_gen::my_redis::ItemService for S {
                     key: req.key.clone().unwrap().into_string(),
                 };
 
-                match aof::write_command_to_aof(&command).await {
-                    Ok(_) => {},
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
-                    }
-                }
                 if self.master_type == true {
+                    let mut path = (*CWD).clone();
+                    path.push(format!("../../src/log/log_{}.aof", self.server_index));
+                    match aof::write_command_to_aof(&command, path.to_str().unwrap().to_string()).await {
+                        Ok(_) => {},
+                        Err(e) => {
+                            eprintln!("Error: {:?}", e);
+                        }
+                    }
                     self.dispatch(req.clone()).await;
                 }
                 match self.s_box.borrow_mut().db.remove(&req.key.clone().unwrap().into_string()) {

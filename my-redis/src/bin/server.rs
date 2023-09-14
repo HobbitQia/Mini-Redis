@@ -5,35 +5,20 @@ use my_redis::aof::Command;
 use my_redis::aof::recover_from_aof;
 use my_redis::read_file;
 
+use std::fmt::format;
 use std::net::SocketAddr;
 use my_redis::{S, LogLayer};
+
+use std::path::PathBuf;
+lazy_static::lazy_static! {
+    // #[derive(Debug)]
+    pub static ref CWD: PathBuf = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
+}
 
 use std::collections::HashMap;
 
 #[volo::main]
 async fn main() {
-
-    let commands =  match recover_from_aof().await {
-        Ok(commands) => {
-            commands
-        }
-        Err(e) => {
-            eprintln!("Error: {:?}", e);
-            Vec::new()
-        }
-    };
-        
-    let mut db = HashMap::new();
-    for command in commands {
-        match command {
-            Command::Set { key, value } => {
-                db.insert(key, value);
-            }
-            Command::Del { key } => {
-                db.remove(&key);
-            }
-        }
-    }
 
     let (config, pattern) = read_file::read_file(
         String::from("./src/config.txt")
@@ -42,8 +27,11 @@ async fn main() {
     let mut PROXY_BOX:Vec<(volo_gen::my_redis::ItemServiceClient, volo_gen::my_redis::ItemServiceClient)>
      = Vec::new();
 
-     let args: Vec<String> = std::env::args().collect();
-     let string_name = args[1].to_string();
+    let args: Vec<String> = std::env::args().collect();
+    let string_name = args[1].to_string();
+
+    let index = string_name.as_bytes()[string_name.len()-1 as usize] as char;
+
     // unsafe {
         if pattern == "cluster" && PROXY_BOX.is_empty() && string_name == "proxy" {
             for i in &config {
@@ -65,12 +53,39 @@ async fn main() {
                     
                     println!("addr2:{}", addr);
                         PROXY_BOX.push((client1.clone(), client2.clone()));
+
                     }
                 }
             }
         }
     // }
     
+    let mut path = (*CWD).clone();
+    path.push(format!("../../src/log/log_{}.aof", index));
+    println!("{:?}",path);
+
+    let commands =  match recover_from_aof(path.to_str().unwrap().to_string()).await {
+        Ok(commands) => {
+            commands
+        }
+        Err(e) => {
+            eprintln!("Error: {:?}", e);
+            Vec::new()
+        }
+    };
+        
+    let mut db = HashMap::new();
+    for command in commands {
+        match command {
+            Command::Set { key, value } => {
+                db.insert(key, value);
+            }
+            Command::Del { key } => {
+                db.remove(&key);
+            }
+        }
+    }
+
     for i in &config {
         if string_name == i.name {
             let str = format!("{}:{}", i.host, i.port);
@@ -96,7 +111,8 @@ async fn main() {
                         master_type: i._type == "master",
                         slave_vec,
                         proxy_type: i._type == "proxy",
-                        proxy_box: if i._type == "proxy" { PROXY_BOX.clone() } else { Vec::new() }
+                        proxy_box: if i._type == "proxy" { PROXY_BOX.clone() } else { Vec::new() },
+                        server_index: index
                     }
                 )
                 .layer_front(LogLayer)

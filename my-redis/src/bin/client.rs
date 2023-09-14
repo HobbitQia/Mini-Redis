@@ -25,7 +25,7 @@ async fn main() {
     let opcode;
     let mut args: Vec<String> = std::env::args().collect();
     let (config, pattern) = read_file::read_file(
-        String::from("./src/config.txt")
+        String::from("/home/hobbitqia/Mini-Redis/my-redis/src/config.txt")
     );
 
 
