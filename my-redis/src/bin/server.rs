@@ -25,7 +25,7 @@ async fn main() {
         String::from("/home/ljy/code/Mini-Redis/my-redis/src/config.txt")
     );
 
-    let mut PROXY_BOX:Vec<(volo_gen::my_redis::ItemServiceClient, volo_gen::my_redis::ItemServiceClient)>
+    let mut proxy_box:Vec<(volo_gen::my_redis::ItemServiceClient, volo_gen::my_redis::ItemServiceClient)>
      = Vec::new();
 
     let args: Vec<String> = std::env::args().collect();
@@ -36,7 +36,7 @@ async fn main() {
     else { '0' };
 
     // unsafe {
-        if pattern == "cluster" && PROXY_BOX.is_empty() && string_name == "proxy" {
+        if pattern == "cluster" && proxy_box.is_empty() && string_name == "proxy" {
             for i in &config {
                 for j in &config {
                     if i._type == "master" && j._type == "slave" && j.master_host == i.host && j.master_port == i.port {
@@ -55,7 +55,7 @@ async fn main() {
                         .build();
                     
                     println!("addr2:{}", addr);
-                        PROXY_BOX.push((client1.clone(), client2.clone()));
+                        proxy_box.push((client1.clone(), client2.clone()));
 
                     }
                 }
@@ -119,7 +119,7 @@ async fn main() {
                         master_type: i._type == "master",
                         slave_vec,
                         proxy_type: i._type == "proxy",
-                        proxy_box: if i._type == "proxy" { PROXY_BOX.clone() } else { Vec::new() },
+                        proxy_box: if i._type == "proxy" { proxy_box.clone() } else { Vec::new() },
                         server_index: index
                     }
                 )
@@ -134,7 +134,7 @@ async fn main() {
     
     if pattern == "cluster" && string_name == "proxy" {
         println!("proxy exit");
-        for (i, j) in PROXY_BOX {
+        for (i, j) in proxy_box {
             let _ = i.redis_command(Item {
                 key: None,
                 value: None,
