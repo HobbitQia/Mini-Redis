@@ -25,7 +25,7 @@ $ bash ./src/client_part3_test.bash      # 测试 Part 3 cluster
 > 
 > 同时需要注意为了解决多个服务器占用同一端口问题，每次测试完毕后请使用 `bash ./src/tools/kill-ports` 杀死之前的服务端进程，再进行后续测试。
 
-此外，多次使用程序可能导致同一个端口被多个 server 占用。这里我们提供了一个批量杀死指定端口的脚本文件，可见 `tools/kill-ports.bash`。
+此外，多次使用程序可能导致同一个端口被多个 server 占用。这里我们提供了一个批量杀死指定端口的脚本文件，可见 `src/tools/kill-ports.bash`。
 
 ### 配置文件格式
 
