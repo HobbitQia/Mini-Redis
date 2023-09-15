@@ -1,4 +1,4 @@
-use lazy_static::lazy_static;
+// use lazy_static::lazy_static;
 use std::net::SocketAddr;
 use my_redis::LogLayer;
 use volo::FastStr;
@@ -52,7 +52,7 @@ async fn main() {
         }
     }
     let addr: SocketAddr = str.parse().unwrap();
-    let CLIENT = volo_gen::my_redis::ItemServiceClientBuilder::new("my-redis")
+    let client = volo_gen::my_redis::ItemServiceClientBuilder::new("my-redis")
         .layer_outer(LogLayer)
         .address(addr)
         .build();
@@ -125,7 +125,7 @@ async fn main() {
         }
     };
 
-    let resp = CLIENT.redis_command(request, false).await;
+    let resp = client.redis_command(request, false).await;
     match resp {
         Ok(info) => {
             match info.response_type {
