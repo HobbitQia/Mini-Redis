@@ -65,7 +65,6 @@ impl S {
     pub async fn proxy_dispatch(&self, req: Item) -> Result<ItemResponse, ::volo_thrift::AnyhowError> {
         let hash = State::<ARC>::calculate(req.key.clone().unwrap().as_bytes()) % MOD;
         let size = self.proxy_box.len() as u16;
-        // println!("{}",size);
         let index = hash / (MOD / size); 
         match req.request_type {
             ItemType::Set | ItemType::Del => {
@@ -131,6 +130,11 @@ impl volo_gen::my_redis::ItemService for S {
                         response_type: ResponseType::Error,
                         value: Some("You can not set values into slave server.".into())
                     });
+                }
+
+                if req.key.is_none() && req.value.is_none() {
+                    println!("Server will be shut down!");
+                    std::process::exit(0);
                 }
 
                 self.s_box.write().unwrap().borrow_mut().db.insert(
