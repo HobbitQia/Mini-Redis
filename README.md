@@ -13,13 +13,15 @@
 ``` shell
 $ git clone https://github.com/HobbitQia/Mini-Redis.git
 $ cd Mini-Redis/my-redis
-$ run ./test.bash                       # 测试 Part 1 AOF 
-$ run ./src/run.bash                    # 脚本批量启动 Server 
-$ run ./src/client_part2_test.bash      # 测试 Part 2 主从
-$ run ./src/client_part3_test.bash      # 测试 Part 3 cluster
+$ bash ./test.bash                       # 测试 Part 1 AOF 
+$ bash ./src/run.bash                    # 脚本批量启动 Server 
+$ bash ./src/client_part2_test.bash      # 测试 Part 2 主从
+$ bash ./src/client_part3_test.bash      # 测试 Part 3 cluster
 ```
 
-需要注意的是，运行 `run ./src/run.bash` 时，需要在 `my-redis` 目录下，因为脚本中使用了相对路径。同时在启动服务器前需要配置好配置文件 `config.txt`，具体格式如下。（我们在 `./src` 目录下提供了两个模式的参考文件，如 `cfg_ms.txt`，需要用时直接复制进 `config.txt` 即可）
+> 需要注意的是，Part2 和 Part3 共享一份服务器启动脚本 `./src/run.bash` 。但是在启动服务器前需要配置好配置文件 `config.txt`，具体格式见下文示例。（我们在 `./src` 目录下提供了两个模式的参考文件，如 `cfg_ms.txt`，需要用时直接复制进 `config.txt` 即可）
+> 注意，`./src/client_part2_test.bash` 和 `./src/client_part3_test.bash` 并不能一次性直接测完，测试每部分时需要先修改配置文件 `config.txt` 启动对应部分服务器。
+> 同时需要注意为了解决多个服务器占用同一端口问题，每次测试完毕后请使用 `bash ./src/tools/kill-ports` 杀死之前的服务端进程，再进行后续测试。
 
 此外，多次使用程序可能导致同一个端口被多个 server 占用。这里我们提供了一个批量杀死指定端口的脚本文件，可见 `tools/kill-ports.bash`。
 
