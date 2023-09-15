@@ -10,6 +10,8 @@
 
 ## 如何在本地构建使用
 
+在使用之前，因为使用相对路径的话依赖于当前终端工作目录，所以需要手动修改 `src/bin/` 中的代码文件，需要找到3个文件中的 `read_file()` 函数中的参数路径改为自己的配置文件的绝对路径才能运行
+
 ``` shell
 $ git clone https://github.com/HobbitQia/Mini-Redis.git
 $ cd Mini-Redis/my-redis
